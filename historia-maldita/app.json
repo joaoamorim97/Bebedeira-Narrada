@@ -3,7 +3,7 @@
     "name": "Bebedeira Narrada",
     "slug": "bebedeira-narrada",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "platforms": ["ios", "android"],
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
@@ -27,7 +27,16 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://bebedeira-narrada.onrender.com"
+      "apiUrl": "https://bebedeira-narrada.onrender.com",
+      "eas": {
+        "projectId": "7600d655-ce12-4444-bf3a-b1670538441f"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7600d655-ce12-4444-bf3a-b1670538441f"
     }
   }
 }

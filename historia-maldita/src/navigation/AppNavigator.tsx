@@ -13,6 +13,7 @@ import GameScreen from '../screens/GameScreen';
 import ResultScreen from '../screens/ResultScreen';
 import FinaleScreen from '../screens/FinaleScreen';
 import CostsScreen from '../screens/CostsScreen';
+import LanguageScreen from '../screens/LanguageScreen';
 import StorySetupScreen from '../screens/StorySetupScreen';
 import StoryLocationScreen from '../screens/StoryLocationScreen';
 import StoryGameScreen from '../screens/StoryGameScreen';
@@ -26,12 +27,13 @@ export default function AppNavigator() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Home"
+          initialRouteName="Language"
           screenOptions={{
             headerShown: false,
             cardStyle: { backgroundColor: COLORS.background },
           }}
         >
+          <Stack.Screen name="Language" component={LanguageScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="HowToPlay" component={HowToPlayScreen} />
           <Stack.Screen name="Players" component={PlayersScreen} />

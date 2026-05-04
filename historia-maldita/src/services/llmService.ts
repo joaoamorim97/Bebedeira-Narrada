@@ -1,15 +1,20 @@
 import { GameSession, SceneData, RoundResult } from '../types';
-import { FALLBACK_SCENES, FALLBACK_RESULTS } from '../constants/fallback';
+import { FALLBACK_SCENES_BY_LANG, FALLBACK_RESULTS_BY_LANG } from '../constants/fallback';
 import { apiPost } from '../constants/api';
+import { useLanguageStore } from '../store/languageStore';
 
-function getRandomFallbackScene(): SceneData {
-  return FALLBACK_SCENES[Math.floor(Math.random() * FALLBACK_SCENES.length)];
+function getLang() { return useLanguageStore.getState().language; }
+function fallbackScene(): SceneData {
+  const s = FALLBACK_SCENES_BY_LANG[getLang()];
+  return s[Math.floor(Math.random() * s.length)];
 }
-function getRandomFallbackResult(): RoundResult {
-  return FALLBACK_RESULTS[Math.floor(Math.random() * FALLBACK_RESULTS.length)];
+function fallbackResult(): RoundResult {
+  const r = FALLBACK_RESULTS_BY_LANG[getLang()];
+  return r[Math.floor(Math.random() * r.length)];
 }
 
 export async function generateScene(session: GameSession): Promise<SceneData> {
+  const lang = getLang();
   const currentPlayer = session.players[session.currentPlayerIndex];
   try {
     const data = await apiPost('/api/scene', {
@@ -18,19 +23,21 @@ export async function generateScene(session: GameSession): Promise<SceneData> {
       round: session.currentRound,
       totalRounds: session.totalRounds,
       intensity: session.intensity,
-      activeRules: session.activeRules.map(r => r.ruleText).join('; ') || 'nenhuma',
+      activeRules: session.activeRules.map(r => r.ruleText).join('; ') || 'none',
       recentHistory: session.recentHistory.slice(-3)
-        .map(h => `${h.playerName}: ${h.choiceMade} → ${h.resultText}`).join(' | ') || 'início',
+        .map(h => `${h.playerName}: ${h.choiceMade} → ${h.resultText}`).join(' | ') || 'start',
+      lang,
     });
     if (!data.scene_text || !Array.isArray(data.choices)) throw new Error('Invalid scene structure');
     return { sceneText: data.scene_text, choices: data.choices.slice(0, 5) };
   } catch (e: any) {
     console.error('[llmService] scene failed, using fallback:', e.message);
-    return getRandomFallbackScene();
+    return fallbackScene();
   }
 }
 
 export async function resolveChoice(session: GameSession, choiceMade: string): Promise<RoundResult> {
+  const lang = getLang();
   const currentPlayer = session.players[session.currentPlayerIndex];
   try {
     const data = await apiPost('/api/resolve', {
@@ -40,7 +47,8 @@ export async function resolveChoice(session: GameSession, choiceMade: string): P
       intensity: session.intensity,
       sceneText: session.currentScene?.sceneText || '',
       choiceMade,
-      activeRules: session.activeRules.map(r => r.ruleText).join('; ') || 'nenhuma',
+      activeRules: session.activeRules.map(r => r.ruleText).join('; ') || 'none',
+      lang,
     });
     if (!data.result_text) throw new Error('Invalid result structure');
     return {
@@ -57,11 +65,12 @@ export async function resolveChoice(session: GameSession, choiceMade: string): P
     };
   } catch (e: any) {
     console.error('[llmService] resolve failed, using fallback:', e.message);
-    return getRandomFallbackResult();
+    return fallbackResult();
   }
 }
 
 export async function generateFinalNarrative(session: GameSession): Promise<string> {
+  const lang = getLang();
   const mostSips = [...session.players].sort((a, b) => b.totalSips - a.totalSips)[0];
   try {
     const data = await apiPost('/api/finale', {
@@ -69,15 +78,17 @@ export async function generateFinalNarrative(session: GameSession): Promise<stri
       totalRounds: session.totalRounds,
       intensity: session.intensity,
       mostPunished: mostSips?.name || '',
+      lang,
     });
-    return data.finale_text || getFallbackFinale(session);
+    return data.finale_text || getFallbackFinale(lang, mostSips?.name);
   } catch (e: any) {
     console.error('[llmService] finale failed:', e.message);
-    return getFallbackFinale(session);
+    return getFallbackFinale(lang, mostSips?.name);
   }
 }
 
-function getFallbackFinale(session: GameSession): string {
-  const mostSips = [...session.players].sort((a, b) => b.totalSips - a.totalSips)[0];
-  return `A maldição foi saciada. ${mostSips?.name || 'Alguém'} carregou o peso do caos. A história termina... por enquanto.`;
+function getFallbackFinale(lang: string, name = 'Alguém'): string {
+  if (lang === 'es') return `La maldición fue saciada. ${name} cargó el peso del caos. La historia termina... por ahora.`;
+  if (lang === 'en') return `The curse was satisfied. ${name} carried the weight of chaos. The story ends... for now.`;
+  return `A maldição foi saciada. ${name} carregou o peso do caos. A história termina... por enquanto.`;
 }

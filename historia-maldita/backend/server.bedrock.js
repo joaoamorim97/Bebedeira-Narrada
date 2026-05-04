@@ -11,10 +11,8 @@ const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-
 const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-haiku-20240307-v1:0';
 
 // ─── COST TRACKER ────────────────────────────────────────────────────────────
-// Claude 3 Haiku: $0.25/1M input, $1.25/1M output
 const PRICE_INPUT  = 0.25 / 1_000_000;
 const PRICE_OUTPUT = 1.25 / 1_000_000;
-
 let costTracker = { totalInputTokens: 0, totalOutputTokens: 0, totalCostUSD: 0, callCount: 0, sessionCosts: [] };
 
 function trackUsage(endpoint, usage) {
@@ -30,38 +28,72 @@ function trackUsage(endpoint, usage) {
   if (costTracker.sessionCosts.length > 200) costTracker.sessionCosts = costTracker.sessionCosts.slice(-200);
 }
 
-// ─── PROMPTS ─────────────────────────────────────────────────────────────────
+// ─── LANGUAGE HELPERS ────────────────────────────────────────────────────────
 
-const SYSTEM_CLASSIC = `Você é a narradora sarcástica de um drinking party game chamado História Maldita.
-Estilo: caótico, sobrenatural, sarcástico, engraçado, festa entre amigos.
-Regras:  português BR, respostas CURTAS, JSON válido sem markdown, sem violência gráfica.
-Seja SARCÁSTICA — às vezes ferre com um jogador específico de propósito.
+const LANG_NAMES = { pt: 'português do Brasil', es: 'español', en: 'English' };
 
-REGRAS PARA PUNIÇÕES — só crie regras FISICAMENTE POSSÍVEIS numa roda de amigos sentados:
-BOAS: "ninguém pode dizer o nome de alguém", "quem beber faz uma careta", "todo mundo bate na mesa antes de beber", "ninguém pode apontar", "quem falar palavrão bebe"
-RUINS (NUNCA): "quem der uma cambalhota", "quem pular", "quem correr", "quem fizer flexão"`;
+// Rules that work for real players sitting around a table drinking
+const RULES_EXAMPLES = {
+  pt: `REGRAS VÁLIDAS (para jogadores REAIS sentados numa mesa bebendo):
+- "Ninguém pode dizer o nome de [jogador] por X rodadas"
+- "Quem beber tem que fazer uma careta"
+- "Todo mundo bate na mesa antes de beber"
+- "Ninguém pode apontar o dedo"
+- "Quem falar palavrão bebe 1 gole"
+- "Ninguém pode cruzar os braços"
+- "Quem rir bebe 1 gole"
+- "Ninguém pode usar o celular"
+- "Quem falar em voz alta bebe"
+REGRAS PROIBIDAS (NUNCA crie): regras para personagens da história, ações físicas impossíveis sentado (pular, correr, dar cambalhota, fazer flexão), percepções sensoriais (ouvir barulho, ver algo, pisar em algo)`,
+  es: `REGLAS VÁLIDAS (para jugadores REALES sentados en una mesa bebiendo):
+- "Nadie puede decir el nombre de [jugador] por X rondas"
+- "Quien beba tiene que hacer una mueca"
+- "Todos golpean la mesa antes de beber"
+- "Nadie puede señalar con el dedo"
+- "Quien diga una mala palabra bebe 1 trago"
+- "Nadie puede cruzar los brazos"
+- "Quien se ría bebe 1 trago"
+- "Nadie puede usar el celular"
+REGLAS PROHIBIDAS (NUNCA crees): reglas para personajes de la historia, acciones físicas imposibles sentado (saltar, correr, dar voltereta), percepciones sensoriales`,
+  en: `VALID RULES (for REAL players sitting at a table drinking):
+- "Nobody can say [player]'s name for X rounds"
+- "Whoever drinks must make a funny face"
+- "Everyone knocks on the table before drinking"
+- "Nobody can point their finger"
+- "Whoever swears drinks 1 sip"
+- "Nobody can cross their arms"
+- "Whoever laughs drinks 1 sip"
+- "Nobody can use their phone"
+FORBIDDEN RULES (NEVER create): rules for story characters, impossible physical actions while seated (jump, run, do a cartwheel), sensory perceptions`,
+};
 
-const SYSTEM_STORY = `Você é a narradora de um drinking party game chamado História Maldita, modo HISTÓRIA.
-O grupo está num lugar específico vivendo uma aventura coletiva. Narre como um mestre de RPG bêbado e sarcástico.
-Regras absolutas:
-- Português BR sempre
-- Cenas CURTAS: máx 2 frases
-- Escolhas CURTAS: máx 8 palavras cada
-- Consequências CURTAS: máx 2 frases
-- JSON válido sem markdown
-- A cena DEVE continuar o fio da história anterior
-- O ambiente é COMPARTILHADO: o que um jogador faz afeta o cenário para todos
-- Seja SARCÁSTICA — ferre com alguém específico sem motivo aparente
+function getSystemClassic(lang = 'pt') {
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  return `You are the sarcastic narrator of a drinking party game called Bebedeira Narrada.
+Style: chaotic, supernatural, sarcastic, funny, friends at a party.
+CRITICAL: Respond ONLY in ${langName}. Short responses. Valid JSON without markdown. No graphic violence.
+Be SARCASTIC — sometimes target a specific player on purpose.
 
-REGRAS PARA PUNIÇÕES — só crie regras FISICAMENTE POSSÍVEIS numa roda de amigos sentados:
-BOAS: "ninguém pode dizer o nome de alguém", "quem beber faz uma careta", "todo mundo bate na mesa antes de beber", "ninguém pode apontar", "quem falar palavrão bebe"
-RUINS (NUNCA): "quem der uma cambalhota", "quem pular", "quem correr", "quem fizer flexão"
+${RULES_EXAMPLES[lang] || RULES_EXAMPLES.pt}`;
+}
 
-SOBRE JOGADORES — CRÍTICO:
-- O jogador da vez está SEMPRE explícito no contexto
-- NUNCA pergunte o que outro jogador quer fazer
-- As escolhas são SEMPRE ações do jogador da vez
-- Não confunda os nomes dos jogadores`;
+function getSystemStory(lang = 'pt') {
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  return `You are the narrator of a drinking party game called Bebedeira Narrada, STORY mode.
+The group is in a specific place living a collective adventure. Narrate like a drunk sarcastic RPG master.
+CRITICAL: Respond ONLY in ${langName}.
+Rules:
+- Scenes SHORT: max 2 sentences
+- Choices SHORT: max 8 words each
+- Consequences SHORT: max 2 sentences
+- Valid JSON without markdown
+- Scene MUST continue the previous story thread
+- Environment is SHARED: what one player does affects everyone
+- Be SARCASTIC — target someone specifically without reason
+- ABOUT PLAYERS: the current player is ALWAYS explicit in context. NEVER ask what another player wants to do.
+
+${RULES_EXAMPLES[lang] || RULES_EXAMPLES.pt}`;
+}
 
 // ─── HELPER ──────────────────────────────────────────────────────────────────
 
@@ -70,7 +102,7 @@ async function callBedrock(endpoint, systemPrompt, userPrompt) {
     modelId: MODEL_ID,
     system: [{ text: systemPrompt }],
     messages: [{ role: 'user', content: [{ text: userPrompt }] }],
-    inferenceConfig: { maxTokens: 450, temperature: 0.88 },
+    inferenceConfig: { maxTokens: 500, temperature: 0.88 },
   });
   try {
     const response = await client.send(command);
@@ -116,62 +148,34 @@ app.get('/costs', (req, res) => {
       <td>${c.outputTokens}</td>
       <td>$${c.costUSD.toFixed(5)}</td>
     </tr>`).join('');
-
-  res.send(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>História Maldita — Custos</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:system-ui,sans-serif;background:#0D0D1A;color:#fff;padding:24px}
-    h1{color:#9B59B6;margin-bottom:8px}
-    .model{color:#6C6C8A;font-size:12px;margin-bottom:24px}
-    .cards{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-    .card{background:#1A1A2E;border:1px solid #2A2A4A;border-radius:12px;padding:16px;min-width:140px}
-    .val{font-size:24px;font-weight:900}.val.g{color:#27AE60}.val.p{color:#9B59B6}
-    .lbl{font-size:11px;color:#6C6C8A;margin-top:4px}
-    .btns{display:flex;gap:8px;margin-bottom:20px}
-    button{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700}
-    .r{background:#7B2FBE;color:#fff}.d{background:#E74C3C;color:#fff}
-    table{width:100%;border-collapse:collapse;background:#1A1A2E;border-radius:12px;overflow:hidden}
-    th{background:#2A2A4A;padding:10px 14px;text-align:left;font-size:11px;color:#9B59B6;text-transform:uppercase;letter-spacing:1px}
-    td{padding:9px 14px;font-size:12px;border-bottom:1px solid #2A2A4A;color:#B0B0C0}
-    tr:last-child td{border-bottom:none}
-    td:last-child{color:#F39C12;font-weight:700}
-  </style>
-</head>
-<body>
-  <h1>💀 História Maldita — Custos</h1>
-  <p class="model">Modelo: ${MODEL_ID}</p>
-  <div class="cards">
-    <div class="card"><div class="val">${costTracker.callCount}</div><div class="lbl">chamadas</div></div>
-    <div class="card"><div class="val">${costTracker.totalInputTokens.toLocaleString()}</div><div class="lbl">tokens input</div></div>
-    <div class="card"><div class="val">${costTracker.totalOutputTokens.toLocaleString()}</div><div class="lbl">tokens output</div></div>
-    <div class="card"><div class="val">$${usd}</div><div class="lbl">total USD</div></div>
-    <div class="card"><div class="val g">R$${brl}</div><div class="lbl">total BRL</div></div>
-    ${costTracker.callCount > 0 ? `<div class="card"><div class="val p">R$${((costTracker.totalCostUSD * 5.7 / costTracker.callCount) * 18).toFixed(4)}</div><div class="lbl">estimativa/partida</div></div>` : ''}
-  </div>
-  <div class="btns">
-    <button class="r" onclick="location.reload()">↻ Atualizar</button>
-    <button class="d" onclick="if(confirm('Zerar contador?'))fetch('/api/costs',{method:'DELETE'}).then(()=>location.reload())">🗑 Zerar</button>
-  </div>
-  <table>
-    <thead><tr><th>Hora</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Custo USD</th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#6C6C8A;padding:20px">Nenhuma chamada ainda</td></tr>'}</tbody>
-  </table>
+  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bebedeira Narrada — Custos</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#0D0D1A;color:#fff;padding:24px}h1{color:#9B59B6;margin-bottom:8px}.model{color:#6C6C8A;font-size:12px;margin-bottom:24px}.cards{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}.card{background:#1A1A2E;border:1px solid #2A2A4A;border-radius:12px;padding:16px;min-width:140px}.val{font-size:24px;font-weight:900}.val.g{color:#27AE60}.val.p{color:#9B59B6}.lbl{font-size:11px;color:#6C6C8A;margin-top:4px}.btns{display:flex;gap:8px;margin-bottom:20px}button{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700}.r{background:#7B2FBE;color:#fff}.d{background:#E74C3C;color:#fff}table{width:100%;border-collapse:collapse;background:#1A1A2E;border-radius:12px;overflow:hidden}th{background:#2A2A4A;padding:10px 14px;text-align:left;font-size:11px;color:#9B59B6;text-transform:uppercase;letter-spacing:1px}td{padding:9px 14px;font-size:12px;border-bottom:1px solid #2A2A4A;color:#B0B0C0}tr:last-child td{border-bottom:none}td:last-child{color:#F39C12;font-weight:700}</style></head>
+<body><h1>💀 Bebedeira Narrada — Custos</h1><p class="model">Modelo: ${MODEL_ID}</p>
+<div class="cards">
+  <div class="card"><div class="val">${costTracker.callCount}</div><div class="lbl">chamadas</div></div>
+  <div class="card"><div class="val">${costTracker.totalInputTokens.toLocaleString()}</div><div class="lbl">tokens input</div></div>
+  <div class="card"><div class="val">${costTracker.totalOutputTokens.toLocaleString()}</div><div class="lbl">tokens output</div></div>
+  <div class="card"><div class="val">$${usd}</div><div class="lbl">total USD</div></div>
+  <div class="card"><div class="val g">R$${brl}</div><div class="lbl">total BRL</div></div>
+  ${costTracker.callCount > 0 ? `<div class="card"><div class="val p">R$${((costTracker.totalCostUSD * 5.7 / costTracker.callCount) * 18).toFixed(4)}</div><div class="lbl">estimativa/partida</div></div>` : ''}
+</div>
+<div class="btns"><button class="r" onclick="location.reload()">↻ Atualizar</button><button class="d" onclick="if(confirm('Zerar?'))fetch('/api/costs',{method:'DELETE'}).then(()=>location.reload())">🗑 Zerar</button></div>
+<table><thead><tr><th>Hora</th><th>Endpoint</th><th>Input</th><th>Output</th><th>Custo USD</th></tr></thead>
+<tbody>${rows || '<tr><td colspan="5" style="text-align:center;color:#6C6C8A;padding:20px">Nenhuma chamada ainda</td></tr>'}</tbody></table>
 </body></html>`);
 });
 
 // ─── STORY: DESCRIÇÃO DO LUGAR ────────────────────────────────────────────────
 
 app.post('/api/story/describe', async (req, res) => {
-  const { location, players, intensity } = req.body;
-  const prompt = `O grupo (${players.join(', ')}) está em: "${location}". Intensidade: ${intensity}.
-Crie uma descrição CURTA e atmosférica do lugar (máx 3 frases). Estabeleça o clima, detalhes sensoriais e algo levemente suspeito ou engraçado.
-Retorne JSON: {"description":"descrição do lugar","atmosphere":"palavra que define o clima"}`;
+  const { location, players, intensity, lang = 'pt' } = req.body;
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  const prompt = `The group (${players.join(', ')}) is at: "${location}". Intensity: ${intensity}.
+Create a SHORT atmospheric description of the place (max 3 sentences). Establish the mood, sensory details, and something slightly suspicious or funny.
+Respond ONLY in ${langName}.
+Return JSON: {"description":"place description","atmosphere":"one word for the mood"}`;
 
-  try { res.json(await callBedrock('story/describe', SYSTEM_STORY, prompt)); }
+  try { res.json(await callBedrock('story/describe', getSystemStory(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
@@ -179,40 +183,43 @@ Retorne JSON: {"description":"descrição do lugar","atmosphere":"palavra que de
 
 app.post('/api/story/scene', async (req, res) => {
   const { players, currentPlayer, round, totalRounds, location, locationDescription,
-          intensity, activeRules, history, sharedContext, isGroupEvent, allPlayers } = req.body;
+          intensity, activeRules, history, sharedContext, isGroupEvent, allPlayers, lang = 'pt' } = req.body;
 
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
   const recentContext = (history || []).slice(-2)
-    .map(h => `${h.playerName} fez "${h.choiceMade}" → ${h.resultText}`)
-    .join(' | ') || 'início da história';
+    .map(h => `${h.playerName}: "${h.choiceMade}" → ${h.resultText}`)
+    .join(' | ') || 'start of story';
 
   let prompt;
   if (isGroupEvent && allPlayers && allPlayers.length >= 2) {
     const others = allPlayers.filter(p => p !== currentPlayer).join(', ');
-    prompt = `Modo história. Local: "${location}". Descrição: ${locationDescription || location}
-EVENTO COLETIVO — Todos os jogadores estão envolvidos: ${allPlayers.join(', ')}
-Rodada: ${round}/${totalRounds} | Intensidade: ${intensity} | Regras: ${activeRules || 'nenhuma'}
-Histórico: ${recentContext} | Ambiente: ${sharedContext || 'normal'}
+    prompt = `Story mode. Location: "${location}". Description: ${locationDescription || location}
+GROUP EVENT — All players involved: ${allPlayers.join(', ')}
+Round: ${round}/${totalRounds} | Intensity: ${intensity} | Active rules: ${activeRules || 'none'}
+Recent history: ${recentContext} | Environment: ${sharedContext || 'normal'}
 
-QUEM DECIDE: ${currentPlayer} (os outros — ${others} — sofrem as consequências também)
-Crie uma cena onde TODOS são afetados. As 4 escolhas são ações de ${currentPlayer} pelo grupo.
+WHO DECIDES: ${currentPlayer} (others — ${others} — also suffer consequences)
+Create a scene where ALL are affected. The 4 choices are actions by ${currentPlayer} for the group.
+Respond ONLY in ${langName}.
 
-Retorne JSON:
-{"scene_text":"cena curta envolvendo todos (máx 2 frases)","choices":["opção 1","opção 2","opção 3","opção 4"],"is_group_event":true,"involved_players":${JSON.stringify(allPlayers)}}`;
+Return JSON:
+{"scene_text":"short scene involving everyone (max 2 sentences)","choices":["option 1","option 2","option 3","option 4"],"is_group_event":true,"involved_players":${JSON.stringify(allPlayers)}}`;
   } else {
-    prompt = `Modo história. Local: "${location}". Descrição: ${locationDescription || location}
-Jogadores no local: ${players.join(', ')}
-JOGADOR DA VEZ: ${currentPlayer} — SOMENTE ELE age nessa cena
-Rodada: ${round}/${totalRounds} | Intensidade: ${intensity} | Regras: ${activeRules || 'nenhuma'}
-Histórico: ${recentContext} | Ambiente: ${sharedContext || 'normal'}
+    prompt = `Story mode. Location: "${location}". Description: ${locationDescription || location}
+Players present: ${players.join(', ')}
+CURRENT PLAYER: ${currentPlayer} — ONLY THEY act in this scene
+Round: ${round}/${totalRounds} | Intensity: ${intensity} | Active rules: ${activeRules || 'none'}
+Recent history: ${recentContext} | Environment: ${sharedContext || 'normal'}
 
-Crie uma cena para ${currentPlayer} agir. As 4 escolhas são ações de ${currentPlayer}.
-NÃO pergunte o que outros jogadores querem fazer.
+Create a scene for ${currentPlayer} to act. The 4 choices are ${currentPlayer}'s actions.
+DO NOT ask what other players want to do.
+Respond ONLY in ${langName}.
 
-Retorne JSON:
-{"scene_text":"cena curta (máx 2 frases)","choices":["opção 1","opção 2","opção 3","opção 4"],"is_group_event":false,"involved_players":["${currentPlayer}"]}`;
+Return JSON:
+{"scene_text":"short scene (max 2 sentences)","choices":["option 1","option 2","option 3","option 4"],"is_group_event":false,"involved_players":["${currentPlayer}"]}`;
   }
 
-  try { res.json(await callBedrock('story/scene', SYSTEM_STORY, prompt)); }
+  try { res.json(await callBedrock('story/scene', getSystemStory(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
@@ -220,78 +227,89 @@ Retorne JSON:
 
 app.post('/api/story/resolve', async (req, res) => {
   const { players, currentPlayer, sceneText, choiceMade, intensity,
-          activeRules, locationDescription, sharedContext, isGroupEvent, involvedPlayers } = req.body;
+          activeRules, locationDescription, sharedContext, isGroupEvent, involvedPlayers, lang = 'pt' } = req.body;
 
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
   const affectedDesc = isGroupEvent
-    ? `EVENTO COLETIVO — todos os jogadores (${players.join(', ')}) são afetados`
-    : `Jogador que agiu: ${currentPlayer}`;
+    ? `GROUP EVENT — all players (${players.join(', ')}) are affected`
+    : `Player who acted: ${currentPlayer}`;
 
-  const prompt = `Modo história. Local: ${locationDescription}
+  const prompt = `Story mode. Location: ${locationDescription}
 ${affectedDesc}
-${currentPlayer} escolheu: "${choiceMade}"
-Cena: ${sceneText}
-Ambiente atual: ${sharedContext || 'normal'}
-Todos os jogadores: ${players.join(', ')} | Intensidade: ${intensity}
+${currentPlayer} chose: "${choiceMade}"
+Scene: ${sceneText}
+Current environment: ${sharedContext || 'normal'}
+All players: ${players.join(', ')} | Intensity: ${intensity}
 
-Crie uma consequência CURTA (máx 2 frases) que faça sentido com a escolha.
-${isGroupEvent ? 'Como é evento coletivo, as consequências podem afetar múltiplos jogadores.' : ''}
-Seja SARCÁSTICA. Varie: beber, mandar alguém beber, todos bebem, criar regra, ninguém bebe.
-Máx 3 goles/jogador, máx 3 afetados, máx 1 regra.
+Create a SHORT consequence (max 2 sentences) that makes sense with the choice.
+${isGroupEvent ? 'As a group event, consequences can affect multiple players.' : ''}
+Be SARCASTIC. Vary: drink, make someone drink, everyone drinks, create rule, nobody drinks.
+Max 3 sips/player, max 3 affected, max 1 rule.
+Respond ONLY in ${langName}.
 
-Retorne JSON:
+Return JSON:
 {
-  "result_text": "consequência curta",
-  "new_shared_context": "frase curta: o que mudou no ambiente para todos",
-  "drinks": [{"player_name": "nome exato ou ALL ou CURRENT", "sips": 1}],
-  "new_rules": [{"rule_text": "regra simples e possível numa roda de amigos", "duration_rounds": 2, "target": "all"}]
+  "result_text": "short consequence",
+  "new_shared_context": "short sentence: what changed in the environment for everyone",
+  "drinks": [{"player_name": "exact name or ALL or CURRENT", "sips": 1}],
+  "new_rules": [{"rule_text": "simple rule for real players sitting at a table", "duration_rounds": 2, "target": "all"}]
 }`;
 
-  try { res.json(await callBedrock('story/resolve', SYSTEM_STORY, prompt)); }
+  try { res.json(await callBedrock('story/resolve', getSystemStory(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
 // ─── STORY: FINALE ───────────────────────────────────────────────────────────
 
 app.post('/api/story/finale', async (req, res) => {
-  const { players, location, mostPunished } = req.body;
-  const summary = players.map(p => `${p.name}: ${p.sips} goles`).join(', ');
-  const prompt = `Encerre a história em "${location}". Jogadores: ${summary} | Mais punido: ${mostPunished}
-Retorne JSON: {"finale_text":"conclusão épica e sarcástica (máx 3 frases)"}`;
+  const { players, location, mostPunished, lang = 'pt' } = req.body;
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  const summary = players.map(p => `${p.name}: ${p.sips} sips`).join(', ');
+  const prompt = `End the story that took place at "${location}".
+Players: ${summary} | Most punished: ${mostPunished}
+Respond ONLY in ${langName}.
+Return JSON: {"finale_text":"epic and sarcastic conclusion (max 3 sentences)"}`;
 
-  try { res.json(await callBedrock('story/finale', SYSTEM_STORY, prompt)); }
+  try { res.json(await callBedrock('story/finale', getSystemStory(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
 // ─── CLASSIC MODE ────────────────────────────────────────────────────────────
 
 app.post('/api/scene', async (req, res) => {
-  const { players, currentPlayer, round, totalRounds, intensity, activeRules, recentHistory } = req.body;
-  const prompt = `Party game. Jogadores: ${players.join(', ')} | Vez de: ${currentPlayer} | Rodada: ${round}/${totalRounds}
-Intensidade: ${intensity} | Regras: ${activeRules || 'nenhuma'} | Histórico: ${recentHistory || 'início'}
-Retorne JSON: {"scene_text":"cena curta (máx 2 frases)","choices":["opção 1","opção 2","opção 3","opção 4"]}`;
+  const { players, currentPlayer, round, totalRounds, intensity, activeRules, recentHistory, lang = 'pt' } = req.body;
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  const prompt = `Party game. Players: ${players.join(', ')} | Current: ${currentPlayer} | Round: ${round}/${totalRounds}
+Intensity: ${intensity} | Rules: ${activeRules || 'none'} | History: ${recentHistory || 'start'}
+Respond ONLY in ${langName}.
+Return JSON: {"scene_text":"short scene (max 2 sentences)","choices":["option 1","option 2","option 3","option 4"]}`;
 
-  try { res.json(await callBedrock('classic/scene', SYSTEM_CLASSIC, prompt)); }
+  try { res.json(await callBedrock('classic/scene', getSystemClassic(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
 app.post('/api/resolve', async (req, res) => {
-  const { players, currentPlayer, intensity, sceneText, choiceMade, activeRules } = req.body;
-  const prompt = `Resolva. Cena: ${sceneText} | ${currentPlayer} escolheu: "${choiceMade}"
-Jogadores: ${players.join(', ')} | Intensidade: ${intensity} | Regras: ${activeRules || 'nenhuma'}
-Seja SARCÁSTICO. Máx 3 goles/jogador, máx 3 afetados, máx 1 regra.
-Retorne JSON: {"result_text":"consequência curta","drinks":[{"player_name":"nome ou ALL","sips":1}],"new_rules":[{"rule_text":"regra possível numa roda de amigos","duration_rounds":2,"target":"all"}]}`;
+  const { players, currentPlayer, intensity, sceneText, choiceMade, activeRules, lang = 'pt' } = req.body;
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  const prompt = `Resolve. Scene: ${sceneText} | ${currentPlayer} chose: "${choiceMade}"
+Players: ${players.join(', ')} | Intensity: ${intensity} | Rules: ${activeRules || 'none'}
+Be SARCASTIC. Max 3 sips/player, max 3 affected, max 1 rule.
+Respond ONLY in ${langName}.
+Return JSON: {"result_text":"short consequence","drinks":[{"player_name":"name or ALL","sips":1}],"new_rules":[{"rule_text":"rule for real players at a table","duration_rounds":2,"target":"all"}]}`;
 
-  try { res.json(await callBedrock('classic/resolve', SYSTEM_CLASSIC, prompt)); }
+  try { res.json(await callBedrock('classic/resolve', getSystemClassic(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
 app.post('/api/finale', async (req, res) => {
-  const { players, mostPunished } = req.body;
-  const summary = players.map(p => `${p.name}: ${p.sips} goles`).join(', ');
-  const prompt = `Encerre a partida. Jogadores: ${summary} | Mais punido: ${mostPunished}
-Retorne JSON: {"finale_text":"conclusão sarcástica (máx 3 frases)"}`;
+  const { players, mostPunished, lang = 'pt' } = req.body;
+  const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
+  const summary = players.map(p => `${p.name}: ${p.sips} sips`).join(', ');
+  const prompt = `End the game. Players: ${summary} | Most punished: ${mostPunished}
+Respond ONLY in ${langName}.
+Return JSON: {"finale_text":"sarcastic conclusion (max 3 sentences)"}`;
 
-  try { res.json(await callBedrock('classic/finale', SYSTEM_CLASSIC, prompt)); }
+  try { res.json(await callBedrock('classic/finale', getSystemClassic(lang), prompt)); }
   catch (e) { res.status(500).json({ error: e.message, code: e.name }); }
 });
 
@@ -299,8 +317,7 @@ Retorne JSON: {"finale_text":"conclusão sarcástica (máx 3 frases)"}`;
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`\n💀 Historia Maldita backend — porta ${PORT}`);
+  console.log(`\n💀 Bebedeira Narrada backend — porta ${PORT}`);
   console.log(`   Modelo: ${MODEL_ID}`);
   console.log(`   Dashboard: http://localhost:${PORT}/costs\n`);
 });
-

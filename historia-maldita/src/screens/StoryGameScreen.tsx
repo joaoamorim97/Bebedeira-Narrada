@@ -77,7 +77,7 @@ export default function StoryGameScreen({ navigation }: Props) {
         {scene?.isGroupEvent && (
           <View style={styles.groupBanner}>
             <Text style={styles.groupBannerText}>
-              👥 Evento coletivo — {session.players.map(p => p.name).join(', ')}
+              🔥 EVENTO COLETIVO — {session.players.map(p => p.name).join(', ')}
             </Text>
           </View>
         )}
@@ -149,14 +149,14 @@ const styles = StyleSheet.create({
   playerBadgeText: { color: COLORS.text, fontSize: FONTS.small, fontWeight: '700' },
   content: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
   groupBanner: {
-    backgroundColor: '#1A0A2E',
-    borderWidth: 1,
-    borderColor: COLORS.primary,
+    backgroundColor: '#2A1000',
+    borderWidth: 2,
+    borderColor: COLORS.accentOrange,
     borderRadius: 10,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
   },
-  groupBannerText: { color: COLORS.primaryLight, fontSize: FONTS.small, textAlign: 'center' },
+  groupBannerText: { color: COLORS.accentOrange, fontSize: FONTS.body, textAlign: 'center', fontWeight: '900' },
   turnCard: { alignItems: 'center', marginBottom: SPACING.lg, paddingVertical: SPACING.sm },
   turnEmoji: { fontSize: 28, marginBottom: SPACING.xs },
   turnText: { color: COLORS.textMuted, fontSize: FONTS.small },

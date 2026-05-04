@@ -2,6 +2,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 
 export type RootStackParamList = {
+  Language: undefined;
   Home: undefined;
   HowToPlay: undefined;
   Players: { mode?: 'classic' | 'story' } | undefined;
