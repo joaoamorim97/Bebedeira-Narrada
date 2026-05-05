@@ -6,6 +6,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useGameStore } from '../store/gameStore';
 import { generateFinalNarrative } from '../services/llmService';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function FinaleScreen({ navigation }: Props) {
+  const t = useT();
   const session = useGameStore(s => s.session);
   const resetSession = useGameStore(s => s.resetSession);
   const [finaleText, setFinaleText] = useState('');
@@ -41,13 +43,13 @@ export default function FinaleScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.trophy}>🏆</Text>
-        <Text style={styles.title}>Fim da Maldição</Text>
-        <Text style={styles.subtitle}>{session.totalRounds} rodadas de caos puro</Text>
+        <Text style={styles.title}>{t.endOfStory}</Text>
+        <Text style={styles.subtitle}>{session.totalRounds} {t.roundsOfChaos}</Text>
 
         {loading ? (
           <View style={styles.loadingArea}>
             <ActivityIndicator color={COLORS.primary} />
-            <Text style={styles.loadingText}>A maldição escreve seu epitáfio...</Text>
+            <Text style={styles.loadingText}>{t.epilogueLoading}</Text>
           </View>
         ) : (
           <View style={styles.narrativeCard}>
@@ -57,13 +59,13 @@ export default function FinaleScreen({ navigation }: Props) {
 
         {/* Rankings */}
         <View style={styles.rankingCard}>
-          <Text style={styles.rankingTitle}>📊 Resumo da carnificina</Text>
+          <Text style={styles.rankingTitle}>{t.finalScore}</Text>
           {sortedByDrinks.map((player, i) => (
             <View key={player.id} style={styles.rankRow}>
               <Text style={styles.rankPos}>#{i + 1}</Text>
               <Text style={styles.rankName}>{player.name}</Text>
               <View style={styles.rankSips}>
-                <Text style={styles.rankSipsText}>{player.totalSips} goles</Text>
+                <Text style={styles.rankSipsText}>{player.totalSips} {player.totalSips === 1 ? t.sip : t.sips}</Text>
               </View>
               {i === 0 && <Text style={styles.rankBadge}>😵</Text>}
               {i === sortedByDrinks.length - 1 && sortedByDrinks.length > 1 && <Text style={styles.rankBadge}>😇</Text>}
@@ -75,17 +77,17 @@ export default function FinaleScreen({ navigation }: Props) {
         <View style={styles.highlightsRow}>
           <View style={styles.highlightCard}>
             <Text style={styles.highlightEmoji}>💀</Text>
-            <Text style={styles.highlightLabel}>Mais amaldiçoado</Text>
+            <Text style={styles.highlightLabel}>{t.sips}</Text>
             <Text style={styles.highlightName}>{mostPunished?.name}</Text>
           </View>
           <View style={styles.highlightCard}>
             <Text style={styles.highlightEmoji}>✨</Text>
-            <Text style={styles.highlightLabel}>Sobrevivente</Text>
+            <Text style={styles.highlightLabel}>{t.nodrink}</Text>
             <Text style={styles.highlightName}>{leastPunished?.name}</Text>
           </View>
         </View>
 
-        <GameButton label="Jogar novamente 🎲" onPress={handlePlayAgain} style={styles.btn} />
+        <GameButton label={t.playAgain} onPress={handlePlayAgain} style={styles.btn} />
       </ScrollView>
     </SafeAreaView>
   );

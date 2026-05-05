@@ -6,6 +6,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useStoryStore } from '../store/storyStore';
 import { generateStoryFinale } from '../services/storyService';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function StoryFinaleScreen({ navigation }: Props) {
+  const t = useT();
   const session = useStoryStore(s => s.session);
   const resetSession = useStoryStore(s => s.resetSession);
   const [finaleText, setFinaleText] = useState('');
@@ -20,7 +22,7 @@ export default function StoryFinaleScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!session) return;
-    generateStoryFinale(session).then(t => { setFinaleText(t); setLoading(false); });
+    generateStoryFinale(session).then(text => { setFinaleText(text); setLoading(false); });
   }, []);
 
   if (!session) return null;
@@ -31,13 +33,13 @@ export default function StoryFinaleScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.trophy}>📖</Text>
-        <Text style={styles.title}>Fim da História</Text>
+        <Text style={styles.title}>{t.endOfStory}</Text>
         <Text style={styles.location}>📍 {session.location}</Text>
 
         {loading ? (
           <View style={styles.loadingArea}>
             <ActivityIndicator color={COLORS.primary} />
-            <Text style={styles.loadingText}>Escrevendo o epílogo...</Text>
+            <Text style={styles.loadingText}>{t.epilogueLoading}</Text>
           </View>
         ) : (
           <View style={styles.narrativeCard}>
@@ -46,13 +48,13 @@ export default function StoryFinaleScreen({ navigation }: Props) {
         )}
 
         <View style={styles.rankingCard}>
-          <Text style={styles.rankingTitle}>📊 Placar final</Text>
+          <Text style={styles.rankingTitle}>{t.finalScore}</Text>
           {sorted.map((p, i) => (
             <View key={p.id} style={styles.rankRow}>
               <Text style={styles.rankPos}>#{i + 1}</Text>
               <Text style={styles.rankName}>{p.name}</Text>
               <View style={styles.sipsBadge}>
-                <Text style={styles.sipsText}>{p.totalSips} goles</Text>
+                <Text style={styles.sipsText}>{p.totalSips} {p.totalSips === 1 ? t.sip : t.sips}</Text>
               </View>
               {i === 0 && <Text style={styles.badge}>😵</Text>}
               {i === sorted.length - 1 && sorted.length > 1 && <Text style={styles.badge}>😇</Text>}
@@ -61,7 +63,7 @@ export default function StoryFinaleScreen({ navigation }: Props) {
         </View>
 
         <GameButton
-          label="Jogar novamente 🎲"
+          label={t.playAgain}
           onPress={() => { resetSession(); navigation.replace('Home'); }}
           style={styles.btn}
         />

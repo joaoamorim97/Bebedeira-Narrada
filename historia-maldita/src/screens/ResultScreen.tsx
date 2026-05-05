@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useGameStore } from '../store/gameStore';
 import DrinkCard from '../components/DrinkCard';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function ResultScreen({ navigation, route }: Props) {
+  const t = useT();
   const session = useGameStore(s => s.session);
   const advanceToNextTurn = useGameStore(s => s.advanceToNextTurn);
 
@@ -40,7 +42,7 @@ export default function ResultScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Choice recap */}
         <View style={styles.choiceRecap}>
-          <Text style={styles.choiceLabel}>{currentPlayer.name} escolheu:</Text>
+          <Text style={styles.choiceLabel}>{currentPlayer.name} {t.chose}</Text>
           <Text style={styles.choiceText}>"{route.params.choiceMade}"</Text>
         </View>
 
@@ -61,18 +63,20 @@ export default function ResultScreen({ navigation, route }: Props) {
         {/* New rules */}
         {result.newRules.length > 0 && (
           <View style={styles.newRulesCard}>
-            <Text style={styles.newRulesTitle}>📜 Nova regra</Text>
+            <Text style={styles.newRulesTitle}>{t.newRule}</Text>
             {result.newRules.map((rule, i) => (
               <View key={i} style={styles.newRuleRow}>
                 <Text style={styles.newRuleText}>{rule.ruleText}</Text>
-                <Text style={styles.newRuleDuration}>por {rule.durationRounds} rodada{rule.durationRounds > 1 ? 's' : ''}</Text>
+                <Text style={styles.newRuleDuration}>
+                  {rule.durationRounds >= 99 ? t.untilEnd : `${t.forRounds} ${rule.durationRounds} ${rule.durationRounds > 1 ? t.roundPlural : t.roundSingular}`}
+                </Text>
               </View>
             ))}
           </View>
         )}
 
         <GameButton
-          label={isLastRound ? "Ver resultado final 🏆" : "Próxima rodada →"}
+          label={isLastRound ? t.finalRound : t.nextRound}
           onPress={handleNext}
           style={styles.nextBtn}
         />

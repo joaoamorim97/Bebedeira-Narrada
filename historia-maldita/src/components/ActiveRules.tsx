@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TemporaryRule } from '../types';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 interface Props {
@@ -8,14 +9,19 @@ interface Props {
 }
 
 export default function ActiveRules({ rules }: Props) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
 
   if (rules.length === 0) return null;
 
+  const label = rules.length > 1
+    ? `${rules.length} ${t.activeRulesPlural}`
+    : `${rules.length} ${t.activeRules}`;
+
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.header}>
-        <Text style={styles.headerText}>⚠️ {rules.length} regra{rules.length > 1 ? 's' : ''} ativa{rules.length > 1 ? 's' : ''}</Text>
+        <Text style={styles.headerText}>⚠️ {label}</Text>
         <Text style={styles.toggle}>{expanded ? '▲' : '▼'}</Text>
       </TouchableOpacity>
       {expanded && rules.map(rule => (

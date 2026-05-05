@@ -8,6 +8,7 @@ import { GameIntensity } from '../types';
 import { useStoryStore } from '../store/storyStore';
 import { generateLocationDescription } from '../services/storyService';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -15,19 +16,20 @@ type Props = {
   route: RouteProp<RootStackParamList, 'StorySetup'>;
 };
 
-const INTENSITIES: { value: GameIntensity; label: string; emoji: string; desc: string }[] = [
-  { value: 'leve', label: 'Leve', emoji: '😊', desc: 'Sarcasmo suave' },
-  { value: 'média', label: 'Média', emoji: '😈', desc: 'Caos moderado' },
-  { value: 'pesada', label: 'Pesada', emoji: '💀', desc: 'Sem piedade' },
-];
-
 export default function StorySetupScreen({ navigation, route }: Props) {
+  const t = useT();
   const { players } = route.params;
   const [location, setLocation] = useState('');
   const [intensity, setIntensity] = useState<GameIntensity>('média');
   const [rounds, setRounds] = useState(4);
   const [loading, setLoading] = useState(false);
   const createSession = useStoryStore(s => s.createSession);
+
+  const INTENSITIES: { value: GameIntensity; label: string; emoji: string; desc: string }[] = [
+    { value: 'leve', label: t.leve, emoji: '😊', desc: t.leveDesc },
+    { value: 'média', label: t.media, emoji: '😈', desc: t.mediaDesc },
+    { value: 'pesada', label: t.pesada, emoji: '💀', desc: t.pesadaDesc },
+  ];
 
   const handleStart = async () => {
     if (!location.trim()) return;
@@ -41,23 +43,23 @@ export default function StorySetupScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Modo História</Text>
-        <Text style={styles.subtitle}>A IA cria uma história no lugar que você escolher</Text>
+        <Text style={styles.title}>{t.storyTitle}</Text>
+        <Text style={styles.subtitle}>{t.storySubtitle}</Text>
 
-        <Text style={styles.label}>Onde a história acontece?</Text>
+        <Text style={styles.label}>{t.whereLabel}</Text>
         <TextInput
           style={styles.input}
           value={location}
           onChangeText={setLocation}
-          placeholder="Ex: bar de faculdade, castelo assombrado, metrô..."
+          placeholder={t.wherePlaceholder}
           placeholderTextColor={COLORS.textMuted}
           maxLength={60}
           autoCapitalize="sentences"
           autoFocus
         />
-        <Text style={styles.hint}>Quanto mais específico, mais engraçado fica</Text>
+        <Text style={styles.hint}>{t.whereHint}</Text>
 
-        <Text style={styles.label}>Intensidade</Text>
+        <Text style={styles.label}>{t.intensityLabel}</Text>
         <View style={styles.intensityRow}>
           {INTENSITIES.map(opt => (
             <TouchableOpacity
@@ -75,11 +77,11 @@ export default function StorySetupScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.playerList}>
-          <Text style={styles.playerListLabel}>Jogadores ({players.length})</Text>
+          <Text style={styles.playerListLabel}>{t.players} ({players.length})</Text>
           <Text style={styles.playerNames}>{players.join(' · ')}</Text>
         </View>
 
-        <Text style={styles.label}>Quantidade de rounds (máx 8)</Text>
+        <Text style={styles.label}>{t.roundsLabel}</Text>
         <View style={styles.roundsRow}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
             <TouchableOpacity
@@ -92,17 +94,17 @@ export default function StorySetupScreen({ navigation, route }: Props) {
           ))}
         </View>
         <Text style={styles.hint}>
-          ~{Math.round(rounds * players.length * 1.5)} min estimados
+          ~{Math.round(rounds * players.length * 1.5)} {t.estimatedTime}
         </Text>
 
         <GameButton
-          label={loading ? 'Criando o lugar...' : 'Começar a história 📖'}
+          label={loading ? t.creating : t.startStory}
           onPress={handleStart}
           disabled={!location.trim()}
           loading={loading}
           style={styles.btn}
         />
-        <GameButton label="Voltar" onPress={() => navigation.goBack()} variant="ghost" />
+        <GameButton label={t.back} onPress={() => navigation.goBack()} variant="ghost" />
       </ScrollView>
     </SafeAreaView>
   );

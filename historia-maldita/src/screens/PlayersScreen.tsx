@@ -8,6 +8,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function PlayersScreen({ navigation, route }: Props) {
+  const t = useT();
   const [players, setPlayers] = useState<string[]>(['', '']);
   const [inputValue, setInputValue] = useState('');
   const mode = route.params?.mode || 'classic';
@@ -55,8 +57,8 @@ export default function PlayersScreen({ navigation, route }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Jogadores</Text>
-          <Text style={styles.subtitle}>Adicione de 2 a 12 jogadores</Text>
+          <Text style={styles.title}>{t.players}</Text>
+          <Text style={styles.subtitle}>{t.playersSubtitle}</Text>
 
           {players.map((player, index) => (
             <View key={index} style={styles.playerRow}>
@@ -67,7 +69,7 @@ export default function PlayersScreen({ navigation, route }: Props) {
                 style={styles.input}
                 value={player}
                 onChangeText={(v) => updatePlayer(index, v)}
-                placeholder={`Jogador ${index + 1}`}
+                placeholder={`${t.playerPlaceholder} ${index + 1}`}
                 placeholderTextColor={COLORS.textMuted}
                 maxLength={20}
                 autoCapitalize="words"
@@ -82,22 +84,22 @@ export default function PlayersScreen({ navigation, route }: Props) {
 
           {canAdd && (
             <TouchableOpacity style={styles.addBtn} onPress={addPlayer}>
-              <Text style={styles.addText}>+ Adicionar jogador</Text>
+              <Text style={styles.addText}>{t.addPlayer}</Text>
             </TouchableOpacity>
           )}
 
           <Text style={styles.counter}>
-            {validPlayers.length}/12 jogadores {validPlayers.length < 2 ? `(mínimo 2)` : '✓'}
+            {validPlayers.length}/12 {t.players.toLowerCase()} {validPlayers.length < 2 ? t.minPlayers : '✓'}
           </Text>
 
           <GameButton
-            label="Próximo →"
+            label={t.next}
             onPress={handleNext}
             disabled={!canStart}
             style={styles.nextBtn}
           />
           <GameButton
-            label="Voltar"
+            label={t.back}
             onPress={() => navigation.goBack()}
             variant="ghost"
           />

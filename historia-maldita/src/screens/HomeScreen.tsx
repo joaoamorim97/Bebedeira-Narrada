@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -13,25 +13,61 @@ type Props = {
 
 type WakeStatus = 'idle' | 'waking' | 'ok' | 'fail';
 
+const POLL_INTERVAL_MS = 5000;
+const POLL_TIMEOUT_MS = 90000;
+
 export default function HomeScreen({ navigation }: Props) {
   const t = useT();
   const [wakeStatus, setWakeStatus] = useState<WakeStatus>('idle');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopPolling = () => {
+    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+  };
 
   const handleWake = async () => {
+    if (wakeStatus === 'waking') return;
     setWakeStatus('waking');
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/costs`, { signal: AbortSignal.timeout(30000) });
-      if (res.ok) {
+    stopPolling();
+
+    const tryFetch = async (): Promise<boolean> => {
+      try {
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 4500);
+        const res = await fetch(`${API_BASE_URL}/api/costs`, { signal: controller.signal });
+        clearTimeout(fetchTimeout);
+        return res.ok;
+      } catch {
+        return false;
+      }
+    };
+
+    // Try immediately first
+    const firstTry = await tryFetch();
+    if (firstTry) {
+      setWakeStatus('ok');
+      setTimeout(() => setWakeStatus('idle'), 3000);
+      return;
+    }
+
+    // Poll every 5 seconds for up to 90 seconds total
+    pollingRef.current = setInterval(async () => {
+      const ok = await tryFetch();
+      if (ok) {
+        stopPolling();
         setWakeStatus('ok');
         setTimeout(() => setWakeStatus('idle'), 3000);
-      } else {
-        setWakeStatus('fail');
-        setTimeout(() => setWakeStatus('idle'), 3000);
       }
-    } catch {
+    }, POLL_INTERVAL_MS);
+
+    // Give up after 90 seconds
+    timeoutRef.current = setTimeout(() => {
+      stopPolling();
       setWakeStatus('fail');
       setTimeout(() => setWakeStatus('idle'), 3000);
-    }
+    }, POLL_TIMEOUT_MS);
   };
 
   const wakeLabel = wakeStatus === 'waking' ? t.waking

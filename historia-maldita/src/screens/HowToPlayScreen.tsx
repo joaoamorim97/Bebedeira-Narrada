@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -11,6 +12,17 @@ type Props = {
 };
 
 const steps = [
+  { icon: '👥', titleKey: 'step1Title', descKey: 'step1Desc' },
+  { icon: '⚙️', titleKey: 'step2Title', descKey: 'step2Desc' },
+  { icon: '📖', titleKey: 'step3Title', descKey: 'step3Desc' },
+  { icon: '👆', titleKey: 'step4Title', descKey: 'step4Desc' },
+  { icon: '💀', titleKey: 'step5Title', descKey: 'step5Desc' },
+  { icon: '🔄', titleKey: 'step6Title', descKey: 'step6Desc' },
+];
+
+// Static step content — these are game instructions that don't change per language
+// (kept as-is since they're not in the T object)
+const stepContent = [
   { icon: '👥', title: 'Reúna o grupo', desc: 'De 3 a 10 jogadores. Um celular, passado de mão em mão.' },
   { icon: '⚙️', title: 'Configure a partida', desc: 'Escolha a intensidade do caos e a duração do jogo.' },
   { icon: '📖', title: 'Leia a cena', desc: 'A narradora apresenta uma situação absurda e sobrenatural.' },
@@ -20,12 +32,14 @@ const steps = [
 ];
 
 export default function HowToPlayScreen({ navigation }: Props) {
+  const t = useT();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Como Jogar</Text>
+        <Text style={styles.title}>{t.howToPlayTitle}</Text>
 
-        {steps.map((step, i) => (
+        {stepContent.map((step, i) => (
           <View key={i} style={styles.step}>
             <Text style={styles.stepIcon}>{step.icon}</Text>
             <View style={styles.stepText}>
@@ -40,12 +54,12 @@ export default function HowToPlayScreen({ navigation }: Props) {
         </View>
 
         <GameButton
-          label="Entendi, vamos jogar"
+          label={t.understood}
           onPress={() => navigation.navigate('Players')}
           style={styles.btn}
         />
         <GameButton
-          label="Voltar"
+          label={t.back}
           onPress={() => navigation.goBack()}
           variant="ghost"
           style={styles.backBtn}

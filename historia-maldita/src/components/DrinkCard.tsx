@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { DrinkPenalty } from '../types';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 interface Props {
@@ -11,9 +12,11 @@ interface Props {
 }
 
 export default function DrinkCard({ drinks, players, currentPlayerName, leftPlayerName }: Props) {
+  const t = useT();
+
   if (drinks.length === 0) return (
     <View style={styles.container}>
-      <Text style={styles.nodrink}>✨ Ninguém bebe dessa vez!</Text>
+      <Text style={styles.nodrink}>{t.nodrink}</Text>
     </View>
   );
 
@@ -21,18 +24,18 @@ export default function DrinkCard({ drinks, players, currentPlayerName, leftPlay
     let name = d.playerName;
     if (d.playerName === 'CURRENT') name = currentPlayerName;
     else if (d.playerName === 'LEFT') name = leftPlayerName;
-    else if (d.playerName === 'ALL') name = 'Todos';
+    else if (d.playerName === 'ALL') name = players.map(p => p.name).join(', ');
     return { ...d, playerName: name };
   });
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🍺 Quem bebe</Text>
+      <Text style={styles.title}>{t.whodrinks}</Text>
       {resolvedDrinks.map((d, i) => (
         <View key={i} style={styles.row}>
           <Text style={styles.name}>{d.playerName}</Text>
           <View style={styles.sipsBadge}>
-            <Text style={styles.sips}>{d.sips} {d.sips === 1 ? 'gole' : 'goles'}</Text>
+            <Text style={styles.sips}>{d.sips} {d.sips === 1 ? t.sip : t.sips}</Text>
           </View>
         </View>
       ))}

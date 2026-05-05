@@ -7,6 +7,7 @@ import { useStoryStore } from '../store/storyStore';
 import { generateStoryScene, resolveStoryChoice } from '../services/storyService';
 import ChoiceButton from '../components/ChoiceButton';
 import ActiveRules from '../components/ActiveRules';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export default function StoryGameScreen({ navigation }: Props) {
+  const t = useT();
   const session = useStoryStore(s => s.session);
   const isLoading = useStoryStore(s => s.isLoading);
   const setScene = useStoryStore(s => s.setScene);
@@ -62,8 +64,9 @@ export default function StoryGameScreen({ navigation }: Props) {
         <View style={styles.headerLeft}>
           <Text style={styles.location}>📍 {session.location}</Text>
           <Text style={styles.round}>
-            Rodada {session.currentRound}/{session.totalRounds}
-            {' · '}Turno {session.currentPlayerIndex + 1}/{session.players.length}
+            {t.round} {session.currentRound}/{session.totalRounds}
+            {' · '}
+            {t.turn} {session.currentPlayerIndex + 1}/{session.players.length}
           </Text>
         </View>
         <View style={styles.playerBadge}>
@@ -77,7 +80,7 @@ export default function StoryGameScreen({ navigation }: Props) {
         {scene?.isGroupEvent && (
           <View style={styles.groupBanner}>
             <Text style={styles.groupBannerText}>
-              🔥 EVENTO COLETIVO — {session.players.map(p => p.name).join(', ')}
+              {t.groupEvent} — {session.players.map(p => p.name).join(', ')}
             </Text>
           </View>
         )}
@@ -85,7 +88,7 @@ export default function StoryGameScreen({ navigation }: Props) {
         <View style={styles.turnCard}>
           <Text style={styles.turnEmoji}>📖</Text>
           <Text style={styles.turnText}>
-            {scene?.isGroupEvent ? 'Grupo decide — vez de' : 'Vez de'}
+            {scene?.isGroupEvent ? t.groupDecides : t.yourTurn}
           </Text>
           <Text style={styles.turnName}>{currentPlayer.name}</Text>
         </View>
@@ -93,7 +96,7 @@ export default function StoryGameScreen({ navigation }: Props) {
         {isLoading && !session.currentScene ? (
           <View style={styles.loadingArea}>
             <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>A história continua...</Text>
+            <Text style={styles.loadingText}>{t.storyLoading}</Text>
           </View>
         ) : session.currentScene ? (
           <>
@@ -101,7 +104,7 @@ export default function StoryGameScreen({ navigation }: Props) {
               <Text style={styles.sceneText}>{session.currentScene.sceneText}</Text>
             </View>
             <Text style={styles.choicesLabel}>
-              {scene?.isGroupEvent ? 'O que o grupo faz?' : 'O que você faz?'}
+              {scene?.isGroupEvent ? t.whatGroupDoes : t.whatYouDo}
             </Text>
             {session.currentScene.choices.map((choice, i) => (
               <ChoiceButton
@@ -118,7 +121,7 @@ export default function StoryGameScreen({ navigation }: Props) {
         {isLoading && session.currentScene && (
           <View style={styles.resolvingArea}>
             <ActivityIndicator color={COLORS.primary} />
-            <Text style={styles.loadingText}>A história decide o destino...</Text>
+            <Text style={styles.loadingText}>{t.destinyLoading}</Text>
           </View>
         )}
       </ScrollView>

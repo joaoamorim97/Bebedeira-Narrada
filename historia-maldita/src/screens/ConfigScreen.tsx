@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/types';
 import { GameIntensity, GameDuration } from '../types';
 import { useGameStore } from '../store/gameStore';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -14,23 +15,24 @@ type Props = {
   route: RouteProp<RootStackParamList, 'Config'>;
 };
 
-const INTENSITIES: { value: GameIntensity; label: string; desc: string; emoji: string }[] = [
-  { value: 'leve', label: 'Leve', desc: 'Caos controlado, bom para começar', emoji: '😊' },
-  { value: 'média', label: 'Média', desc: 'Equilíbrio entre diversão e punição', emoji: '😈' },
-  { value: 'pesada', label: 'Pesada', desc: 'Sem piedade. Boa sorte.', emoji: '💀' },
-];
-
-const DURATIONS: { value: GameDuration; label: string; desc: string; rounds: number }[] = [
-  { value: 'curta', label: 'Curta', desc: '~20 min', rounds: 8 },
-  { value: 'média', label: 'Média', desc: '~30 min', rounds: 12 },
-  { value: 'longa', label: 'Longa', desc: '~45 min', rounds: 16 },
+const DURATIONS: { value: GameDuration; desc: string; rounds: number }[] = [
+  { value: 'curta', desc: '~20 min', rounds: 8 },
+  { value: 'média', desc: '~30 min', rounds: 12 },
+  { value: 'longa', desc: '~45 min', rounds: 16 },
 ];
 
 export default function ConfigScreen({ navigation, route }: Props) {
+  const t = useT();
   const { players } = route.params;
   const [intensity, setIntensity] = useState<GameIntensity>('média');
   const [duration, setDuration] = useState<GameDuration>('média');
   const createSession = useGameStore(s => s.createSession);
+
+  const INTENSITIES: { value: GameIntensity; label: string; desc: string; emoji: string }[] = [
+    { value: 'leve', label: t.leve, desc: t.leveDesc, emoji: '😊' },
+    { value: 'média', label: t.media, desc: t.mediaDesc, emoji: '😈' },
+    { value: 'pesada', label: t.pesada, desc: t.pesadaDesc, emoji: '💀' },
+  ];
 
   const handleStart = () => {
     createSession(players, intensity, duration);
@@ -40,10 +42,10 @@ export default function ConfigScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Configurar</Text>
-        <Text style={styles.subtitle}>{players.length} jogadores prontos</Text>
+        <Text style={styles.title}>{t.classicMode}</Text>
+        <Text style={styles.subtitle}>{players.length} {t.players.toLowerCase()}</Text>
 
-        <Text style={styles.sectionLabel}>Intensidade do caos</Text>
+        <Text style={styles.sectionLabel}>{t.intensityLabel}</Text>
         {INTENSITIES.map(opt => (
           <TouchableOpacity
             key={opt.value}
@@ -61,7 +63,7 @@ export default function ConfigScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         ))}
 
-        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg }]}>Duração da partida</Text>
+        <Text style={[styles.sectionLabel, { marginTop: SPACING.lg }]}>{t.roundsLabel}</Text>
         <View style={styles.durationRow}>
           {DURATIONS.map(opt => (
             <TouchableOpacity
@@ -70,16 +72,16 @@ export default function ConfigScreen({ navigation, route }: Props) {
               onPress={() => setDuration(opt.value)}
             >
               <Text style={[styles.durationLabel, duration === opt.value && styles.durationLabelSelected]}>
-                {opt.label}
+                {opt.value === 'curta' ? t.leve : opt.value === 'longa' ? t.pesada : t.media}
               </Text>
               <Text style={styles.durationDesc}>{opt.desc}</Text>
-              <Text style={styles.durationRounds}>{opt.rounds} rodadas</Text>
+              <Text style={styles.durationRounds}>{opt.rounds} {t.roundPlural}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <GameButton label="Começar o jogo 💀" onPress={handleStart} style={styles.startBtn} />
-        <GameButton label="Voltar" onPress={() => navigation.goBack()} variant="ghost" />
+        <GameButton label={`${t.startStory.replace('📖', '💀')}`} onPress={handleStart} style={styles.startBtn} />
+        <GameButton label={t.back} onPress={() => navigation.goBack()} variant="ghost" />
       </ScrollView>
     </SafeAreaView>
   );

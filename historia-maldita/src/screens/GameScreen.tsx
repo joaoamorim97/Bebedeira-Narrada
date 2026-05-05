@@ -10,6 +10,7 @@ import { useGameStore } from '../store/gameStore';
 import { generateScene, resolveChoice } from '../services/llmService';
 import ChoiceButton from '../components/ChoiceButton';
 import ActiveRules from '../components/ActiveRules';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export default function GameScreen({ navigation }: Props) {
+  const t = useT();
   const session = useGameStore(s => s.session);
   const isLoading = useGameStore(s => s.isLoading);
   const setScene = useGameStore(s => s.setScene);
@@ -64,7 +66,7 @@ export default function GameScreen({ navigation }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.roundLabel}>Rodada {session.currentRound}/{session.totalRounds}</Text>
+          <Text style={styles.roundLabel}>{t.round} {session.currentRound}/{session.totalRounds}</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: progressWidth }]} />
           </View>
@@ -80,7 +82,7 @@ export default function GameScreen({ navigation }: Props) {
         {/* Turn indicator */}
         <View style={styles.turnCard}>
           <Text style={styles.turnEmoji}>🎲</Text>
-          <Text style={styles.turnText}>Vez de</Text>
+          <Text style={styles.turnText}>{t.yourTurn}</Text>
           <Text style={styles.turnName}>{currentPlayer.name}</Text>
         </View>
 
@@ -88,7 +90,7 @@ export default function GameScreen({ navigation }: Props) {
         {isLoading && !session.currentScene ? (
           <View style={styles.loadingArea}>
             <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>A maldição está se formando...</Text>
+            <Text style={styles.loadingText}>{t.storyLoading}</Text>
           </View>
         ) : session.currentScene ? (
           <>
@@ -96,7 +98,7 @@ export default function GameScreen({ navigation }: Props) {
               <Text style={styles.sceneText}>{session.currentScene.sceneText}</Text>
             </View>
 
-            <Text style={styles.choicesLabel}>O que você faz?</Text>
+            <Text style={styles.choicesLabel}>{t.whatYouDo}</Text>
             {session.currentScene.choices.map((choice, i) => (
               <ChoiceButton
                 key={i}
@@ -112,7 +114,7 @@ export default function GameScreen({ navigation }: Props) {
         {isLoading && session.currentScene && (
           <View style={styles.resolvingOverlay}>
             <ActivityIndicator color={COLORS.primary} />
-            <Text style={styles.loadingText}>A maldição decide seu destino...</Text>
+            <Text style={styles.loadingText}>{t.destinyLoading}</Text>
           </View>
         )}
       </ScrollView>

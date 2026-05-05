@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useStoryStore } from '../store/storyStore';
 import GameButton from '../components/GameButton';
+import { useT } from '../store/languageStore';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 type Props = {
@@ -12,8 +13,8 @@ type Props = {
 };
 
 export default function StoryLocationScreen({ navigation }: Props) {
+  const t = useT();
   const session = useStoryStore(s => s.session);
-  const [loading, setLoading] = useState(false);
 
   if (!session) return null;
 
@@ -21,18 +22,11 @@ export default function StoryLocationScreen({ navigation }: Props) {
     navigation.replace('StoryGame');
   };
 
-  const atmosphereEmoji: Record<string, string> = {
-    sombrio: '🌑', caótico: '🌀', estranho: '👁️', misterioso: '🔮',
-    assombrado: '👻', tenso: '⚡', bizarro: '🤡', sinistro: '💀',
-  };
-
-  const emoji = atmosphereEmoji[session.locationDescription?.toLowerCase()] || '📍';
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.topSection}>
-          <Text style={styles.eyebrow}>Vocês chegaram em</Text>
+          <Text style={styles.eyebrow}>{t.storySubtitle}</Text>
           <Text style={styles.locationName}>{session.location}</Text>
         </View>
 
@@ -42,7 +36,7 @@ export default function StoryLocationScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.playersCard}>
-          <Text style={styles.playersLabel}>Grupo presente</Text>
+          <Text style={styles.playersLabel}>{t.players}</Text>
           <View style={styles.playersList}>
             {session.players.map((p, i) => (
               <View key={p.id} style={styles.playerChip}>
@@ -54,21 +48,21 @@ export default function StoryLocationScreen({ navigation }: Props) {
 
         <View style={styles.infoRow}>
           <View style={styles.infoBadge}>
-            <Text style={styles.infoLabel}>Rodadas</Text>
+            <Text style={styles.infoLabel}>{t.round}</Text>
             <Text style={styles.infoValue}>{session.totalRounds}</Text>
           </View>
           <View style={styles.infoBadge}>
-            <Text style={styles.infoLabel}>Intensidade</Text>
+            <Text style={styles.infoLabel}>{t.intensityLabel}</Text>
             <Text style={styles.infoValue}>{session.intensity}</Text>
           </View>
           <View style={styles.infoBadge}>
-            <Text style={styles.infoLabel}>Jogadores</Text>
+            <Text style={styles.infoLabel}>{t.players}</Text>
             <Text style={styles.infoValue}>{session.players.length}</Text>
           </View>
         </View>
 
         <GameButton
-          label="Entrar no lugar 🚪"
+          label={t.startStory}
           onPress={handleStart}
           style={styles.btn}
         />

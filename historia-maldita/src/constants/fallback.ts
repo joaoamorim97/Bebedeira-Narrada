@@ -109,5 +109,5 @@ export const GAME_LIMITS = {
   maxSipsPerPlayer: 3,
   maxPlayersAffected: 3,
   maxNewRulesPerRound: 2,
-  maxRuleDuration: 3,
+  maxRuleDuration: 99, // rules last until end of game
 };
