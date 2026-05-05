@@ -404,7 +404,7 @@ function sanitizeResult(data, lang, players) {
 
 function getSystemClassic(lang, players) {
   const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
-  return `You are the sarcastic narrator of a drinking party game called Bebedeira Narrada.
+  return `You are the sarcastic narrator of a drinking party game called Story Shot.
 Style: chaotic, supernatural, sarcastic, funny, friends at a party.
 CRITICAL: Respond ONLY in ${langName}. Short responses. Valid JSON without markdown. No graphic violence.
 Be SARCASTIC — sometimes target a specific player on purpose.
@@ -414,7 +414,7 @@ ${getRulesPrompt(lang, players)}`;
 
 function getSystemStory(lang, players) {
   const langName = LANG_NAMES[lang] || LANG_NAMES.pt;
-  return `You are the narrator of a drinking party game called Bebedeira Narrada, STORY mode.
+  return `You are the narrator of a drinking party game called Story Shot, STORY mode.
 The group is in a specific place living a collective adventure. Narrate like a drunk sarcastic RPG master.
 CRITICAL: Respond ONLY in ${langName}.
 - Scenes SHORT: max 2 sentences. Choices SHORT: max 8 words. Consequences SHORT: max 2 sentences.
@@ -471,9 +471,9 @@ app.get('/costs', (req, res) => {
   const brl = (costTracker.totalCostUSD * 5.7).toFixed(4);
   const rows = costTracker.sessionCosts.slice().reverse().map(c => `
     <tr><td>${new Date(c.timestamp).toLocaleTimeString('pt-BR')}</td><td>${c.endpoint}</td><td>${c.inputTokens}</td><td>${c.outputTokens}</td><td>$${c.costUSD.toFixed(5)}</td></tr>`).join('');
-  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bebedeira Narrada — Custos</title>
+  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Story Shot — Custos</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#0D0D1A;color:#fff;padding:24px}h1{color:#9B59B6;margin-bottom:8px}.model{color:#6C6C8A;font-size:12px;margin-bottom:24px}.cards{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}.card{background:#1A1A2E;border:1px solid #2A2A4A;border-radius:12px;padding:16px;min-width:140px}.val{font-size:24px;font-weight:900}.val.g{color:#27AE60}.val.p{color:#9B59B6}.lbl{font-size:11px;color:#6C6C8A;margin-top:4px}.btns{display:flex;gap:8px;margin-bottom:20px}button{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700}.r{background:#7B2FBE;color:#fff}.d{background:#E74C3C;color:#fff}table{width:100%;border-collapse:collapse;background:#1A1A2E;border-radius:12px;overflow:hidden}th{background:#2A2A4A;padding:10px 14px;text-align:left;font-size:11px;color:#9B59B6;text-transform:uppercase;letter-spacing:1px}td{padding:9px 14px;font-size:12px;border-bottom:1px solid #2A2A4A;color:#B0B0C0}tr:last-child td{border-bottom:none}td:last-child{color:#F39C12;font-weight:700}</style></head>
-<body><h1>💀 Bebedeira Narrada — Custos</h1><p class="model">Modelo: ${MODEL_ID}</p>
+<body><h1>💀 Story Shot — Custos</h1><p class="model">Modelo: ${MODEL_ID}</p>
 <div class="cards">
   <div class="card"><div class="val">${costTracker.callCount}</div><div class="lbl">chamadas</div></div>
   <div class="card"><div class="val">${costTracker.totalInputTokens.toLocaleString()}</div><div class="lbl">tokens input</div></div>
@@ -610,7 +610,8 @@ Return JSON: {"finale_text":"sarcastic conclusion (max 3 sentences)"}`;
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`\n💀 Bebedeira Narrada backend — porta ${PORT}`);
+  console.log(`\n💀 Story Shot backend — porta ${PORT}`);
   console.log(`   Modelo: ${MODEL_ID}`);
   console.log(`   Dashboard: http://localhost:${PORT}/costs\n`);
 });
+

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -11,9 +11,9 @@ type Props = {
 };
 
 const LANGUAGES: { code: Language; flag: string; label: string; sublabel: string }[] = [
-  { code: 'pt', flag: '🇧🇷', label: 'Português', sublabel: 'Brasil' },
-  { code: 'es', flag: '🇪🇸', label: 'Español', sublabel: 'Latinoamérica' },
-  { code: 'en', flag: '🇺🇸', label: 'English', sublabel: 'United States' },
+  { code: 'pt', flag: 'ðŸ‡§ðŸ‡·', label: 'PortuguÃªs', sublabel: 'Brasil' },
+  { code: 'es', flag: 'ðŸ‡ªðŸ‡¸', label: 'EspaÃ±ol', sublabel: 'LatinoamÃ©rica' },
+  { code: 'en', flag: 'ðŸ‡ºðŸ‡¸', label: 'English', sublabel: 'United States' },
 ];
 
 export default function LanguageScreen({ navigation }: Props) {
@@ -32,8 +32,8 @@ export default function LanguageScreen({ navigation }: Props) {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Bebedeira Narrada</Text>
-        <Text style={styles.subtitle}>Escolha o idioma · Choose language · Elige idioma</Text>
+        <Text style={styles.title}>Story Shot</Text>
+        <Text style={styles.subtitle}>Escolha o idioma Â· Choose language Â· Elige idioma</Text>
 
         <View style={styles.options}>
           {LANGUAGES.map(lang => (
@@ -48,7 +48,7 @@ export default function LanguageScreen({ navigation }: Props) {
                 <Text style={styles.langLabel}>{lang.label}</Text>
                 <Text style={styles.langSub}>{lang.sublabel}</Text>
               </View>
-              <Text style={styles.arrow}>›</Text>
+              <Text style={styles.arrow}>â€º</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -97,3 +97,4 @@ const styles = StyleSheet.create({
   langSub: { color: COLORS.textMuted, fontSize: FONTS.small, marginTop: 2 },
   arrow: { color: COLORS.textMuted, fontSize: 24 },
 });
+
