@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Story Shot",
-    "slug": "story-shot",
+    "slug": "bebedeira-narrada",
     "version": "1.0.0",
     "platforms": ["ios", "android"],
     "icon": "./assets/icon.png",
